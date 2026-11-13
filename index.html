@@ -292,6 +292,14 @@ body{background:#f7fbe9!important}
 .cover{background:var(--pd-lime)!important}
 .av{background:var(--pd-lime)!important;color:#111!important}
 .av.big{box-shadow:0 0 0 1px #b8d900!important}
+.profile-filters{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:12px 0 4px}
+.profile-filters label{display:flex;align-items:center;gap:7px;font-size:11px;color:#697586}
+.profile-filters select{min-width:112px}
+.buyerbar{margin:4px 0 12px!important}
+.pd-sync-btn{width:100%;margin:18px 0 5px;padding:10px 9px;border:0;border-radius:9px;background:var(--pd-lime);color:#172000;font:750 11px Inter,system-ui,sans-serif;cursor:pointer}
+.pd-sync-btn:hover{filter:brightness(.96)}
+.pd-sync-status{display:block;padding:0 5px;color:#66723e;font-size:9px;line-height:1.45;overflow-wrap:anywhere}
+@media(max-width:560px){.profile-filters{justify-content:flex-end;flex-wrap:wrap}.profile-filters label{font-size:10px}.pd-sync-btn{width:auto;min-width:105px;margin:0 4px;padding:9px}.pd-sync-status{display:none}}
 </style>
 </head>
 <body>
@@ -307,12 +315,19 @@ body{background:#f7fbe9!important}
   <button class="pd-nav" data-go="sources"><span class="pd-ico">☷</span> Data sources</button>
   <button class="pd-nav" data-go="mapping"><span class="pd-ico">⌘</span> Column mapping</button>
   <button class="pd-nav" data-go="settings"><span class="pd-ico">⚙</span> Settings</button>
+  <button class="pd-sync-btn" id="btnRefresh">↻ Sync Google Sheets</button>
+  <span id="workerStatus" class="pd-sync-status" role="status" aria-live="polite">Connecting to live data…</span>
   <div class="pd-sidebar-foot"><span class="pd-live-dot"></span> Live workspace<br><small>Google Sheets connected via Worker</small></div>
 </aside>
 \n<div class="wrap">
   <div class="banner"><h1 id="title"></h1><div class="subbar" id="sub"></div></div>
 
   <div class="profile" id="profileCard"></div>
+  <div class="profile-filters">
+    <label>Year <select id="fYear"></select></label>
+    <label>Costing owner <select id="fOwner"></select></label>
+  </div>
+  <div class="buyerbar" id="buyerBar" hidden></div>
 
   <div class="box" id="profileEditor" hidden><h4 id="peTitle">PROFILE</h4><div class="in"><div class="pe-grid">
     <div class="pe-photo">
@@ -341,21 +356,14 @@ body{background:#f7fbe9!important}
   </div></div></div>
 
   <div class="toolbar">
-    <button class="btn primary" id="btnRefresh">↻ Sync Google Sheets</button>
-    <span id="workerStatus" class="note" role="status" aria-live="polite">Connecting to live data…</span>
-    <button class="btn" id="btnSrc">Data sources</button>
     <button class="btn" id="btnSample">Load sample data</button>
-    <button class="btn" id="btnMap">Column mapping</button>
-    <button class="btn" id="btnSet">Settings</button>
     <button class="btn" id="btnClear">Clear tracker</button>
     <button class="btn" id="btnClearCost">Clear costing</button>
     <button class="btn" id="btnPrint">Print / PDF</button>
-    <span class="sp"></span>
-    <label>Year <select id="fYear"></select></label>
-    <label>Costing owner <select id="fOwner"></select></label>
+    
   </div>
 
-  <div class="buyerbar" id="buyerBar" hidden></div>
+  
 
   <div class="box" id="srcPanel" hidden><h4>DATA SOURCES: GOOGLE SHEETS</h4><div class="in">
     <div class="fields" style="grid-template-columns:1fr 1fr">

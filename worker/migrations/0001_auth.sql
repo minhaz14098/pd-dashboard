@@ -34,3 +34,6 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
   FOREIGN KEY (user_id) REFERENCES auth_users(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_id);
+CREATE TABLE IF NOT EXISTS auth_setup_lock (id INTEGER PRIMARY KEY CHECK (id=1), created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS auth_login_attempts (key_hash TEXT NOT NULL, attempted_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_auth_login_attempts_key_time ON auth_login_attempts(key_hash, attempted_at);

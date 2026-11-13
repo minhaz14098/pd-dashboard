@@ -92,6 +92,7 @@ svg text{font-family:Arial,Helvetica,sans-serif}
 
   <div class="toolbar">
     <button class="btn primary" id="btnSelect">Select files</button>
+    <button class="btn" id="btnSyncSheets">Sync Google Sheets</button><span id="syncStatus" style="font-size:12px;color:#64748b"></span>
     <input type="file" id="file" accept=".xlsx,.xls,.xlsm,.csv,.txt" multiple hidden>
     <button class="btn primary" id="btnUpload" disabled>Upload data</button>
     <button class="btn" id="btnSample">Load sample data</button>
@@ -614,6 +615,32 @@ function rebuildData(){
   state.built = state.tracks.length ? buildRecords(combine(state.tracks,TCOLS),0,TMAP,settings.rules) : null;
   state.costBuilt = state.costs.length ? buildCost(combine(state.costs,CCOLS),0,CMAP) : null;
 }
+const GOOGLE_SHEETS_API = 'https://pd-dashboard-api.kaziminhaz14.workers.dev/';
+async function syncGoogleSheets(showStatus=true){
+  const status=$('#syncStatus'), btn=$('#btnSyncSheets');
+  if(btn) btn.disabled=true;
+  if(status) status.textContent='Connecting...';
+  try{
+    const response=await fetch(GOOGLE_SHEETS_API,{cache:'no-store'});
+    if(!response.ok) throw new Error('Worker returned HTTP '+response.status);
+    const data=await response.json();
+    if(!data.tracker || !data.costing) throw new Error('Tracker or Costing data missing from Worker');
+    const trackerRows=parseCSV(data.tracker), costingRows=parseCSV(data.costing);
+    if(!trackerRows.length || !costingRows.length) throw new Error('Google Sheets returned empty data');
+    state.tracks=[makeTrack('Google Sheets - Tracker',{'Tracker':trackerRows},false)];
+    state.costs=[makeCost('Google Sheets - Costing',{'Costing':costingRows})];
+    state.buyer='All'; state.year='All'; state.month=null; state.owner='All';
+    refreshAll(true);
+    if(status) status.textContent='Synced successfully';
+    return true;
+  }catch(error){
+    if(status) status.textContent='Sync failed: '+error.message;
+    if(showStatus) console.error('Google Sheets sync failed:',error);
+    return false;
+  }finally{
+    if(btn) btn.disabled=false;
+  }
+}
 function refreshAll(save){
   rebuildData(); if(save) persist();
   fillFilters(); fillMapping(); renderQueue(); render();
@@ -922,6 +949,7 @@ function render(){
 
 // ----- wiring -----
 $('#btnSelect').onclick=()=>$('#file').click();
+$('#btnSyncSheets').onclick=()=>syncGoogleSheets(true);
 $('#drop').onclick=()=>$('#file').click();
 $('#file').onchange=e=>{ if(e.target.files.length) addToQueue(e.target.files); e.target.value=''; };
 $('#btnUpload').onclick=uploadQueue; $('#btnQUpload').onclick=uploadQueue;
@@ -941,7 +969,7 @@ $('#fOwner').onchange=e=>{ state.owner=e.target.value; render(); };
 ['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{ e.preventDefault(); $('#drop').classList.remove('over'); }));
 document.addEventListener('drop',e=>{ const f=e.dataTransfer&&e.dataTransfer.files; if(f&&f.length) addToQueue(f); });
 
-(function init(){
+(async function init(){
   const s2=lsGet(LS_S), s1=lsGet(LS_S1);
   if(s2) settings=Object.assign({},DEFAULTS,s2);
   else if(s1){ const o=Object.assign({},s1); delete o.accent; delete o.title; settings=Object.assign({},DEFAULTS,o); }
@@ -951,6 +979,7 @@ document.addEventListener('drop',e=>{ const f=e.dataTransfer&&e.dataTransfer.fil
   let c=lsGet(LS_C); if(!c){ const o=lsGet(LS_C1); if(o&&o.rows) c={costs:[{name:o.fileName,sheetName:o.sheetName,rows:o.rows,headerRow:o.headerRow,map:o.map}]}; }
   if(c&&c.costs) state.costs=c.costs.map(x=>({name:x.name,sheets:{[x.sheetName]:x.rows},sheetName:x.sheetName,headerRow:x.headerRow,map:x.map}));
   refreshAll(false);
+  await syncGoogleSheets(false);
 })();
 </script>
 </body>

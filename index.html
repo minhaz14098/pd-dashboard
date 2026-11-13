@@ -1596,27 +1596,26 @@ document.addEventListener('drop',e=>{ const f=e.dataTransfer&&e.dataTransfer.fil
   if(!state.tracks.length&&!state.costs.length) $('#srcPanel').hidden=false;
 })();
 </script>
-</b
 <script id="pd-navigation-fixed">
-(()=> {
+(()=>{
  const nav=[...document.querySelectorAll('.pd-nav')];
- const sections=()=>[...document.querySelectorAll('#dash .sec')];
- const byText=(re)=>sections().find(el=>re.test((el.textContent||'').trim()));
- const reveal=(selector,buttonId)=>{const el=document.querySelector(selector);if(el&&el.hidden){const b=buttonId&&document.getElementById(buttonId);if(b)b.click();else el.hidden=false;}return el;};
- const go=(key)=>{
-  let target=null;
-  if(key==='overview'){target=document.querySelector('.banner');window.scrollTo({top:0,behavior:'smooth'});}
-  else if(key==='tracker'){target=byText(/tracker|product development|overview/i)||document.querySelector('#dash .sec')||document.querySelector('#dash');}
-  else if(key==='costing'){target=byText(/costing analysis/i)||document.querySelector('#dash');}
-  else if(key==='charts'){target=byText(/^charts?$/i)||byText(/chart|trend|monthly|quarterly/i)||document.querySelector('#dash');}
-  else if(key==='sources'){target=reveal('#srcPanel','btnSrc');}
-  else if(key==='mapping'){target=reveal('#mapping','btnMap');}
-  else if(key==='settings'){target=reveal('#settings','btnSet');}
-  nav.forEach(b=>b.classList.toggle('active',b.dataset.go===key));
-  if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
- };
- nav.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();go(b.dataset.go);}));
+ const findSection=(re)=>[...document.querySelectorAll('#dash .sec')].find(el=>re.test((el.textContent||'').trim()));
+ const openPanel=(selector)=>{const el=document.querySelector(selector);if(el)el.hidden=false;return el;};
+ function go(key){
+   let target=null;
+   if(key==='overview'){target=document.querySelector('.profile')||document.querySelector('.banner');}
+   if(key==='tracker'){target=findSection(/^Detail\b/i)||findSection(/styles by buyer/i)||document.querySelector('#dash');}
+   if(key==='costing'){target=findSection(/^Costing analysis\b/i)||findSection(/costing/i);}
+   if(key==='charts'){target=findSection(/^Charts\b/i)||findSection(/charts/i);}
+   if(key==='sources')target=openPanel('#srcPanel');
+   if(key==='mapping')target=openPanel('#mapping');
+   if(key==='settings')target=openPanel('#settings');
+   nav.forEach(b=>b.classList.toggle('active',b.dataset.go===key));
+   if(key==='overview')window.scrollTo({top:0,behavior:'smooth'});
+   else if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
+ }
+ nav.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();go(b.dataset.go);}));
 })();
 </script>
-ody>
+</body>
 </html>

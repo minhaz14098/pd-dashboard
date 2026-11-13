@@ -70,6 +70,10 @@ export async function handleAuth(request, env, url) {
   if (!db || !env.AUTH_PEPPER) return json({ error: "Authentication database or secret is not configured." }, 503);
   const path = url.pathname;
   const body = async () => { try { return await request.json(); } catch { return {}; } };
+  if (path === "/api/auth/status" && request.method === "GET") {
+    const row = await db.prepare("SELECT COUNT(*) AS n FROM auth_users").first();
+    return json({ setupRequired: (row?.n || 0) === 0 });
+  }
   if (path === "/api/auth/me" && request.method === "GET") {
     const s = await getSession(request, db);
     if (!s) return json({ error: "Not signed in." }, 401);
@@ -79,15 +83,15 @@ export async function handleAuth(request, env, url) {
   if (path === "/api/auth/setup" && request.method === "POST") {
     const b = await body();
     if (!env.ADMIN_SETUP_TOKEN || !safeEqual(clean(b.setupToken, 300), env.ADMIN_SETUP_TOKEN)) return json({ error: "Setup code is invalid." }, 403);
+    const userId = clean(b.userId, 40), name = clean(b.name, 80), email = clean(b.email, 160).toLowerCase(), phone = clean(b.phone, 20), password = b.password, channel = b.channel === "sms" ? "sms" : "email";
+    if (!/^[a-zA-Z0-9._-]{3,40}$/.test(userId) || !name || !validEmail(email) || !validPassword(password)) return json({ error: "Enter a valid User ID, name, email and password (at least 12 characters)." }, 400);
+    if (phone && !validPhone(phone)) return json({ error: "Use international phone format, e.g. +8801XXXXXXXXX." }, 400);
+    if (channel === "sms" && !phone) return json({ error: "A mobile number is required for SMS verification." }, 400);
     try {
       await db.prepare("INSERT INTO auth_setup_lock (id,created_at) VALUES (1,?)").bind(new Date().toISOString()).run();
     } catch {
       return json({ error: "Initial setup has already been completed." }, 409);
     }
-    const userId = clean(b.userId, 40), name = clean(b.name, 80), email = clean(b.email, 160).toLowerCase(), phone = clean(b.phone, 20), password = b.password, channel = b.channel === "sms" ? "sms" : "email";
-    if (!/^[a-zA-Z0-9._-]{3,40}$/.test(userId) || !name || !validEmail(email) || !validPassword(password)) return json({ error: "Enter a valid User ID, name, email and password (at least 12 characters)." }, 400);
-    if (phone && !validPhone(phone)) return json({ error: "Use international phone format, e.g. +8801XXXXXXXXX." }, 400);
-    if (channel === "sms" && !phone) return json({ error: "A mobile number is required for SMS verification." }, 400);
     const id = randomToken(16), salt = randomToken(16), hash = await passwordHash(password, salt);
     try {
       await db.prepare("INSERT INTO auth_users (id,user_id,display_name,email,phone,password_salt,password_hash,is_admin,is_active,two_factor_channel,email_verified,phone_verified,created_at) VALUES (?,?,?,?,?,?,?,1,0,?,0,0,?)").bind(id, userId, name, email, phone || null, salt, hash, channel, new Date().toISOString()).run();

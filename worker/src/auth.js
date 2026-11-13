@@ -72,7 +72,7 @@ export async function handleAuth(request, env, url) {
   const body = async () => { try { return await request.json(); } catch { return {}; } };
   if (path === "/api/auth/status" && request.method === "GET") {
     const row = await db.prepare("SELECT COUNT(*) AS n FROM auth_users").first();
-    return json({ setupRequired: (row?.n || 0) === 0 });
+    return json({ setupRequired: (row?.n || 0) === 0, channels: { email: Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL), sms: Boolean(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM_NUMBER) } });
   }
   if (path === "/api/auth/me" && request.method === "GET") {
     const s = await getSession(request, db);

@@ -1456,15 +1456,15 @@ function syncBox(){
 // ----- wiring -----
 $('#btnSelect').onclick=()=>$('#file').click();
 $('#drop').onclick=()=>{ $('#srcPanel').hidden=false; };
-$('#btnSrc').onclick=()=>{ $('#srcPanel').hidden=!$('#srcPanel').hidden; };
+
 $('#btnRefresh').onclick=()=>syncWorkerSheets(false);
 $('#btnSaveLoad').onclick=()=>{ readSettings(); applySettingsToUI(); setupAutoRefresh(); loadFromSheets(false); };
 $('#file').onchange=e=>{ if(e.target.files.length) addToQueue(e.target.files); e.target.value=''; };
 $('#btnUpload').onclick=uploadQueue; $('#btnQUpload').onclick=uploadQueue;
 $('#btnQClear').onclick=()=>{ state.queue=[]; renderQueue(); render(); };
 $('#btnSample').onclick=()=>{ state.tracks=[makeTrack('Sample data',{'Sample':sampleRows()},true)]; state.buyer='All'; state.year='All'; state.month=null; refreshAll(false); };
-$('#btnMap').onclick=()=>{ $('#mapping').hidden=!$('#mapping').hidden; };
-$('#btnSet').onclick=()=>{ $('#settings').hidden=!$('#settings').hidden; };
+
+
 $('#btnPrint').onclick=()=>window.print();
 $('#btnClear').onclick=()=>{ if(!confirm('Remove the tracker data from this browser?')) return; state.tracks=[]; state.buyer='All'; state.year='All'; state.month=null; refreshAll(true); };
 $('#btnClearCost').onclick=()=>{ if(!confirm('Remove the costing data from this browser?')) return; state.costs=[]; state.owner='All'; refreshAll(true); };
@@ -1510,11 +1510,11 @@ document.addEventListener('drop',e=>{ const f=e.dataTransfer&&e.dataTransfer.fil
    if(key==='overview') target=document.querySelector('.banner');
    else if(['tracker','costing','charts'].includes(key)) target=findSection(key)||document.querySelector('#dash');
    else {
-     const panels={sources:['#btnSrc','#srcPanel'],mapping:['#btnMap','#mapping'],settings:['#btnSet','#settings']};
-     const pair=panels[key];
-     if(pair){
-       const panel=document.querySelector(pair[1]), button=document.querySelector(pair[0]);
-       if(panel&&panel.hidden&&button) button.click();
+     const panels={sources:'#srcPanel',mapping:'#mapping',settings:'#settings'};
+     const selector=panels[key];
+     if(selector){
+       const panel=document.querySelector(selector);
+       if(panel) panel.hidden=false;
        target=panel;
      }
    }

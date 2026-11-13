@@ -299,7 +299,7 @@ body{background:#f7fbe9!important}
 <aside class="pd-sidebar" aria-label="Dashboard navigation">
   <div class="pd-brand"><span class="pd-mark">PD</span><span>PRODUCT<br>DEVELOPMENT</span></div>
   <div class="pd-nav-label">WORKSPACE</div>
-  <button class="pd-nav active" data-go="overview"><span class="pd-ico">▦</span> Overview</button>
+  <button class="pd-nav" data-go="overview"><span class="pd-ico">▦</span> Overview</button>
   <button class="pd-nav" data-go="tracker"><span class="pd-ico">▤</span> Tracker</button>
   <button class="pd-nav" data-go="costing"><span class="pd-ico">◫</span> Costing analysis</button>
   <button class="pd-nav" data-go="charts"><span class="pd-ico">▥</span> Charts & reports</button>
@@ -430,21 +430,30 @@ t.opts["CalcIter"]=q;break;case 13:t.opts["CalcMode"]=q;break;case 14:t.opts["Ca
 <script id="pd-navigation-live">
 (()=>{
  const navs=[...document.querySelectorAll('.pd-nav[data-go]')];
+ const sections=()=>[...document.querySelectorAll('#dash .sec')];
  const findSection=(key)=>{
    if(key==='tracker') return document.querySelector('#tracker-section');
-   const sections=[...document.querySelectorAll('#dash .sec')];
-   const pattern=key==='costing'?/costing analysis/i:/charts|reports/i;
-   return sections.find(x=>pattern.test(x.textContent||''))||null;
+   if(key==='costing') return sections().find(x=>/^costing analysis/i.test((x.textContent||'').trim()))||null;
+   if(key==='charts') return sections().find(x=>/^charts?$/i.test((x.textContent||'').trim())||/charts? & reports/i.test((x.textContent||'')))||null;
+   return null;
  };
  const go=(key)=>{
    let target=null;
-   if(key==='overview') target=document.querySelector('#profileCard')||document.querySelector('.banner');
-   else if(key==='tracker'||key==='costing'||key==='charts') target=findSection(key);
-   else if(key==='sources'){const b=document.querySelector('#btnSrc');if(b)b.click();target=document.querySelector('#srcPanel');}
-   else if(key==='mapping'){const b=document.querySelector('#btnMap');if(b)b.click();target=document.querySelector('#mapping');}
-   else if(key==='settings'){const b=document.querySelector('#btnSet');if(b)b.click();target=document.querySelector('#settings');}
-   if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
+   if(key==='overview') target=document.querySelector('.banner');
+   else if(key==='tracker'||key==='costing'||key==='charts'){
+     target=findSection(key);
+     if(!target) target=document.querySelector('#dash');
+   }else{
+     const actions={sources:['#btnSrc','#srcPanel'],mapping:['#btnMap','#mapping'],settings:['#btnSet','#settings']};
+     const pair=actions[key];
+     if(pair){
+       const panel=document.querySelector(pair[1]),button=document.querySelector(pair[0]);
+       if(panel&&panel.hidden&&button) button.click();
+       target=panel;
+     }
+   }
    navs.forEach(b=>b.classList.toggle('active',b.dataset.go===key));
+   if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
  };
  navs.forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
 })();

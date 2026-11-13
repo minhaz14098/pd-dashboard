@@ -274,15 +274,12 @@ tr.tot td{background:#e9edf0!important}
  .cards{grid-template-columns:1fr 1fr!important}
 }
 
-/* Buyer-only focus view */
+/* Buyer list stays compact until Buyer view is clicked */
 .buyer-view-toggle{border:0;background:transparent;color:#65720e;font:800 10px Inter,system-ui,sans-serif;letter-spacing:.6px;text-transform:uppercase;padding:7px 10px;cursor:pointer;border-radius:8px}
 .buyer-view-toggle:hover{background:#eff9c8;color:#273400}
-body.pd-buyer-only{overflow:hidden!important}
-body.pd-buyer-only .pd-sidebar,
-body.pd-buyer-only .wrap>*:not(#buyerBar){display:none!important}
-body.pd-buyer-only #buyerBar{position:fixed!important;inset:0!important;z-index:9999!important;display:flex!important;align-content:center;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;margin:0!important;padding:32px!important;background:#f7fbe9!important;overflow:auto}
-body.pd-buyer-only #buyerBar .buyer-view-toggle{flex:0 0 100%;font-size:13px;text-align:center;margin-bottom:12px}
-body.pd-buyer-only #buyerBar .pill{font-size:15px;padding:12px 20px;box-shadow:0 3px 12px rgba(16,24,40,.06)}
+#buyerBar:not(.buyer-names-visible) .pill:not([data-b="All"]){display:none!important}
+#buyerBar .buyer-view-toggle{order:0}
+#buyerBar .pill{order:1}
 /* Live dashboard indicator and toolbar sync placement */
 .pd-live-heading{display:flex;align-items:center;gap:8px;margin:18px 5px 5px;color:#34410a;font:800 11px Inter,system-ui,sans-serif;letter-spacing:.25px}
 .pd-live-indicator{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#9be66b;box-shadow:0 0 0 4px rgba(155,230,107,.2);animation:pdLivePulse 1.8s ease-in-out infinite}
@@ -374,8 +371,8 @@ body{background:#f7fbe9!important}
   </div></div></div>
 
   <div class="toolbar">
-    <button class="btn" id="btnSample">Load sample data</button>
     <button class="pd-sync-btn" id="btnRefresh">↻ Sync Google Sheets</button>
+    <button class="btn" id="btnSample">Load sample data</button>
     <button class="btn" id="btnClear">Clear tracker</button>
     <button class="btn" id="btnClearCost">Clear costing</button>
     <button class="btn" id="btnPrint">Print / PDF</button>
@@ -953,13 +950,13 @@ function fillBuyerBar(){
   const names=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]||a.localeCompare(b));
   if(state.buyer!=='All' && !cnt[state.buyer]) state.buyer='All';
   bar.hidden=false;
-  bar.innerHTML='<button type="button" class="bl buyer-view-toggle" aria-pressed="'+(document.body.classList.contains('pd-buyer-only')?'true':'false')+'">Buyer view · '+(document.body.classList.contains('pd-buyer-only')?'Show dashboard':'Only buyers')+'</button>'+[['All',recs.length],...names.map(n=>[n,cnt[n]])]
+  const namesVisible=bar.classList.contains('buyer-names-visible');
+  bar.innerHTML='<button type="button" class="bl buyer-view-toggle" aria-pressed="'+(namesVisible?'true':'false')+'">Buyer view</button>'+[['All',recs.length],...names.map(n=>[n,cnt[n]])]
     .map(([n,c])=>`<button class="pill ${n===state.buyer?'on':''}" data-b="${esc(n)}">${n==='All'?'All buyers':esc(n)}<span>${c}</span></button>`).join('');
   const viewToggle=bar.querySelector('.buyer-view-toggle');
   if(viewToggle) viewToggle.onclick=()=>{
-    document.body.classList.toggle('pd-buyer-only');
-    viewToggle.textContent='Buyer view · '+(document.body.classList.contains('pd-buyer-only')?'Show dashboard':'Only buyers');
-    viewToggle.setAttribute('aria-pressed',document.body.classList.contains('pd-buyer-only')?'true':'false');
+    bar.classList.toggle('buyer-names-visible');
+    viewToggle.setAttribute('aria-pressed',bar.classList.contains('buyer-names-visible')?'true':'false');
   };
   bar.querySelectorAll('.pill').forEach(b=>b.onclick=()=>{ state.buyer=b.dataset.b; state.month=null; fillBuyerBar(); render(); });
 }

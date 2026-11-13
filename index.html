@@ -1605,8 +1605,8 @@ document.addEventListener('drop',e=>{ const f=e.dataTransfer&&e.dataTransfer.fil
    let target=null;
    if(key==='overview'){target=document.querySelector('.profile')||document.querySelector('.banner');}
    if(key==='tracker'){target=findSection(/^Detail\b/i)||findSection(/styles by buyer/i)||document.querySelector('#dash');}
-   if(key==='costing'){target=findSection(/^Costing analysis\b/i)||findSection(/costing/i);}
-   if(key==='charts'){target=findSection(/^Charts\b/i)||findSection(/charts/i);}
+   if(key==='costing'){target=findSection(/^Costing analysis\b/i)||findSection(/costing/i)||document.querySelector('#dash');}
+   if(key==='charts'){target=findSection(/^Charts\b/i)||findSection(/charts/i)||document.querySelector('#dash');}
    if(key==='sources')target=openPanel('#srcPanel');
    if(key==='mapping')target=openPanel('#mapping');
    if(key==='settings')target=openPanel('#settings');

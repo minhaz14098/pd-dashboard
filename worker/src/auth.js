@@ -146,9 +146,9 @@ export async function handleAuth(request, env, url) {
   if (path === "/api/auth/forgot" && request.method === "POST") {
     const b = await body(), ident = clean(b.identifier, 160), channel = b.channel === "sms" ? "sms" : "email";
     const user = await db.prepare("SELECT * FROM auth_users WHERE is_active=1 AND (user_id=? COLLATE NOCASE OR email=? COLLATE NOCASE OR phone=?)").bind(ident, ident.toLowerCase(), ident).first();
-    if (!user) return json({ ok: true, message: "If the account exists, a code will be sent." });
+    if (!user) return json({ ok: true, challengeId: randomToken(16), message: "If the account exists, a code will be sent." });
     const dest = channel === "sms" ? user.phone : user.email;
-    if (!dest || (channel === "sms" && !user.phone_verified) || (channel === "email" && !user.email_verified)) return json({ ok: true, message: "If the account exists, a code will be sent." });
+    if (!dest || (channel === "sms" && !user.phone_verified) || (channel === "email" && !user.email_verified)) return json({ ok: true, challengeId: randomToken(16), message: "If the account exists, a code will be sent." });
     try { return json({ ok: true, ...(await issueChallenge(db, user, "reset", channel, dest, env)), message: "If the account exists, a code will be sent." }); }
     catch (e) { return json({ error: e.message || "Could not send code." }, 503); }
   }
@@ -160,6 +160,7 @@ export async function handleAuth(request, env, url) {
     const salt = randomToken(16), hash = await passwordHash(b.newPassword, salt);
     await db.prepare("UPDATE auth_users SET password_salt=?,password_hash=? WHERE id=?").bind(salt, hash, row.user_id).run();
     await db.prepare("DELETE FROM auth_sessions WHERE user_id=?").bind(row.user_id).run();
+    await db.prepare("DELETE FROM auth_challenges WHERE user_id=?").bind(row.user_id).run();
     return json({ ok: true, message: "Password reset. Please sign in again." });
   }
   if (path === "/api/auth/logout" && request.method === "POST") {

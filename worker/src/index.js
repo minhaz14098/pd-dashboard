@@ -1,3 +1,5 @@
+import { handleAuth, authorize } from "./auth.js";
+
 /**
  * PD Dashboard API — Cloudflare Worker
  *
@@ -12,7 +14,7 @@
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Cache-Control": "no-store",
 };
 
@@ -42,19 +44,25 @@ export default {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
-    if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
 
     const url = new URL(request.url);
+    if (url.pathname.startsWith("/api/auth/")) return handleAuth(request, env, url);
+    if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
     if (url.pathname === "/api/health") {
       return json({
         ok: true,
         service: "pd-dashboard-api",
         configured: Boolean(env.TRACKER_CSV_URL && env.COSTING_CSV_URL),
+        authConfigured: Boolean(env.DB && env.AUTH_PEPPER && env.ADMIN_SETUP_TOKEN),
       });
     }
 
     if (url.pathname !== "/" && url.pathname !== "/api/sheets") {
       return json({ error: "Not found" }, 404);
+    }
+
+    if (env.AUTH_REQUIRED === "true" && !(await authorize(request, env))) {
+      return json({ error: "Authentication required." }, 401);
     }
 
     try {

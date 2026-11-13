@@ -190,6 +190,17 @@ tr.tot td{background:#f0f3f7!important;color:#172033}
 }
 @media(max-width:420px){.cards,.qcards{grid-template-columns:1fr}.pname{font-size:20px}}
 
+
+#pd-auth-overlay{position:fixed;inset:0;z-index:999999;background:#ececec;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Arial,Helvetica,sans-serif}
+#pd-auth-overlay[hidden]{display:none}.pd-auth-card{width:min(100%,440px);max-height:94vh;overflow:auto;background:#fff;border:1px solid #d9d9d9;border-radius:12px;padding:26px;box-shadow:0 18px 60px rgba(0,0,0,.12)}
+.pd-auth-brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.04em;margin-bottom:20px}.pd-auth-mark{background:#D5FD00;padding:9px 11px;border-radius:6px}
+.pd-auth-card h2{font-size:22px;margin:0 0 7px}.pd-auth-muted{color:#666;font-size:13px;line-height:1.5;margin:0 0 18px}
+.pd-auth-view[hidden]{display:none}.pd-auth-field{display:block;font-size:12px;font-weight:700;margin:12px 0 5px}
+.pd-auth-input{width:100%;padding:11px 12px;border:1px solid #c9c9c9;border-radius:6px;font:inherit;background:#fff}
+.pd-auth-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}.pd-auth-primary{background:#D5FD00;border:1px solid #b4d600;border-radius:6px;padding:11px 16px;font-weight:700;cursor:pointer}
+.pd-auth-secondary{background:#fff;border:1px solid #ccc;border-radius:6px;padding:10px 14px;cursor:pointer}.pd-auth-link{background:none;border:0;padding:8px 0;color:#333;text-decoration:underline;cursor:pointer;font:inherit;font-size:12px}
+#pd-auth-message{font-size:13px;line-height:1.45;margin:12px 0 0;color:#333;min-height:18px}#pd-auth-logout{position:fixed;right:18px;bottom:18px;z-index:9999;background:#fff;border:1px solid #bbb;border-radius:6px;padding:8px 12px;cursor:pointer;display:none}
+@media(max-width:520px){.pd-auth-card{padding:20px 16px}}
 </style>
 
 <style id="pd-reference-redesign">
@@ -348,8 +359,40 @@ tr.tot td{background:#e9edf0!important}
 }
 </style>
 
+<script>try{window.PD_AUTH={api:"https://pd-dashboard-api.kaziminhaz14.workers.dev/",token:sessionStorage.getItem("pd_auth_token")||""};}catch(e){window.PD_AUTH={api:"https://pd-dashboard-api.kaziminhaz14.workers.dev/",token:""};}</script>
 </head>
 <body>
+
+<div id="pd-auth-overlay"><div class="pd-auth-card">
+<div class="pd-auth-brand"><span class="pd-auth-mark">PD</span><span>PRODUCT DEVELOPMENT<br><small>SECURE WORKSPACE</small></span></div>
+<section class="pd-auth-view" id="pd-auth-loading"><h2>Checking secure access…</h2><p class="pd-auth-muted">Please wait.</p></section>
+<section class="pd-auth-view" id="pd-auth-login" hidden><h2>Welcome back</h2><p class="pd-auth-muted">Sign in with your User ID and password. A verification code will be sent to your registered contact.</p>
+<label class="pd-auth-field" for="pd-login-user">User ID</label><input class="pd-auth-input" id="pd-login-user" autocomplete="username">
+<label class="pd-auth-field" for="pd-login-pass">Password</label><input class="pd-auth-input" id="pd-login-pass" type="password" autocomplete="current-password">
+<div class="pd-auth-actions"><button class="pd-auth-primary" id="pd-login-submit">Continue</button></div><button class="pd-auth-link" id="pd-show-forgot">Forgot password?</button></section>
+<section class="pd-auth-view" id="pd-auth-setup" hidden><h2>Create administrator account</h2><p class="pd-auth-muted">First-time setup. This creates the initial administrator account.</p>
+<label class="pd-auth-field" for="pd-setup-code">One-time setup code</label><input class="pd-auth-input" id="pd-setup-code" autocomplete="off">
+<label class="pd-auth-field" for="pd-setup-name">Your name</label><input class="pd-auth-input" id="pd-setup-name" autocomplete="name">
+<label class="pd-auth-field" for="pd-setup-user">User ID</label><input class="pd-auth-input" id="pd-setup-user" autocomplete="username">
+<label class="pd-auth-field" for="pd-setup-email">Email address</label><input class="pd-auth-input" id="pd-setup-email" type="email" autocomplete="email">
+<label class="pd-auth-field" for="pd-setup-phone">Mobile number (optional, international format)</label><input class="pd-auth-input" id="pd-setup-phone" placeholder="+8801XXXXXXXXX" autocomplete="tel">
+<label class="pd-auth-field" for="pd-setup-channel">2-Step Verification method</label><select class="pd-auth-input" id="pd-setup-channel"><option value="email">Email OTP</option><option value="sms">SMS OTP</option></select>
+<label class="pd-auth-field" for="pd-setup-pass">Password (minimum 12 characters)</label><input class="pd-auth-input" id="pd-setup-pass" type="password" autocomplete="new-password">
+<div class="pd-auth-actions"><button class="pd-auth-primary" id="pd-setup-submit">Create account & send code</button></div></section>
+<section class="pd-auth-view" id="pd-auth-otp" hidden><h2>Verify your identity</h2><p class="pd-auth-muted" id="pd-otp-help">Enter the 6-digit code we sent you.</p>
+<label class="pd-auth-field" for="pd-otp-code">6-digit verification code</label><input class="pd-auth-input" id="pd-otp-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+<div class="pd-auth-actions"><button class="pd-auth-primary" id="pd-otp-submit">Verify & continue</button><button class="pd-auth-secondary" id="pd-otp-back">Back</button></div></section>
+<section class="pd-auth-view" id="pd-auth-forgot" hidden><h2>Forgot password</h2><p class="pd-auth-muted">Enter your User ID, registered email or verified mobile number.</p>
+<label class="pd-auth-field" for="pd-forgot-id">User ID / Email / Mobile</label><input class="pd-auth-input" id="pd-forgot-id">
+<label class="pd-auth-field" for="pd-forgot-channel">Send code by</label><select class="pd-auth-input" id="pd-forgot-channel"><option value="email">Email</option><option value="sms">SMS</option></select>
+<div class="pd-auth-actions"><button class="pd-auth-primary" id="pd-forgot-submit">Send reset code</button><button class="pd-auth-secondary" id="pd-forgot-back">Back to login</button></div></section>
+<section class="pd-auth-view" id="pd-auth-reset" hidden><h2>Set a new password</h2><p class="pd-auth-muted">Enter the code sent to your registered contact and choose a new password.</p>
+<label class="pd-auth-field" for="pd-reset-code">Verification code</label><input class="pd-auth-input" id="pd-reset-code" inputmode="numeric" maxlength="6">
+<label class="pd-auth-field" for="pd-reset-pass">New password (minimum 12 characters)</label><input class="pd-auth-input" id="pd-reset-pass" type="password" autocomplete="new-password">
+<div class="pd-auth-actions"><button class="pd-auth-primary" id="pd-reset-submit">Reset password</button></div></section>
+<div id="pd-auth-message" role="status" aria-live="polite"></div>
+</div></div><button id="pd-auth-logout" type="button">Sign out</button>
+
 
 <aside class="pd-sidebar" aria-label="Dashboard navigation">
   <div class="pd-brand"><span class="pd-mark">PD</span><span>PRODUCT<br>DEVELOPMENT</span></div>
@@ -1512,12 +1555,13 @@ function toast(msg){ const el=$('#toast'); el.textContent=msg; el.classList.add(
 const GOOGLE_SHEETS_API = 'https://pd-dashboard-api.kaziminhaz14.workers.dev/';
 let workerSyncing = false;
 async function syncWorkerSheets(silent){
+  if(!window.PD_AUTH || !window.PD_AUTH.token) return;
   if(workerSyncing) return;
   workerSyncing=true;
   const status=$('#workerStatus');
   if(status) status.textContent='Syncing live Google Sheets…';
   try{
-    const response=await fetch(GOOGLE_SHEETS_API,{method:'GET',cache:'no-store'});
+    const response=await fetch(GOOGLE_SHEETS_API,{method:'GET',cache:'no-store',headers:{Authorization:'Bearer '+window.PD_AUTH.token}});
     if(!response.ok) throw new Error('Worker returned HTTP '+response.status);
     const payload=await response.json();
     if(!payload || typeof payload.tracker!=='string' || typeof payload.costing!=='string'){
@@ -1678,5 +1722,35 @@ document.addEventListener('drop',e=>{ const f=e.dataTransfer&&e.dataTransfer.fil
  nav.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();go(b.dataset.go);}));
 })();
 </script>
+
+<script id="pd-secure-auth">
+(()=>{
+ const byId=id=>document.getElementById(id), views=["loading","login","setup","otp","forgot","reset"];
+ const state={mode:"",challengeId:"",challengePurpose:"",channel:"email"};
+ const overlay=byId("pd-auth-overlay"),message=byId("pd-auth-message"),logout=byId("pd-auth-logout");
+ const show=name=>{state.mode=name;views.forEach(v=>byId("pd-auth-"+v).hidden=v!==name);message.textContent="";};
+ const say=t=>{message.textContent=t||"";};
+ const api=async(path,data)=>{
+  const headers={};if(data)headers["Content-Type"]="application/json";if(window.PD_AUTH.token)headers.Authorization="Bearer "+window.PD_AUTH.token;
+  const res=await fetch(window.PD_AUTH.api+path,{method:data?"POST":"GET",headers,body:data?JSON.stringify(data):undefined,cache:"no-store"});
+  let out={};try{out=await res.json()}catch(e){}if(!res.ok)throw new Error(out.error||("Request failed ("+res.status+")"));return out;
+ };
+ const saveToken=t=>{window.PD_AUTH.token=t;try{sessionStorage.setItem("pd_auth_token",t)}catch(e){}};
+ const clearToken=()=>{window.PD_AUTH.token="";try{sessionStorage.removeItem("pd_auth_token")}catch(e){}};
+ const enter=()=>{overlay.hidden=true;logout.style.display="block";if(typeof syncWorkerSheets==="function")syncWorkerSheets(false);};
+ const startup=async()=>{show("loading");try{if(window.PD_AUTH.token){await api("api/auth/me");enter();return;}const status=await api("api/auth/status");show(status.setupRequired?"setup":"login");}catch(e){show("login");say("Secure login is not ready yet: "+e.message+" Please complete the Cloudflare setup.");}};
+ byId("pd-login-submit").addEventListener("click",async()=>{try{say("Checking password…");const o=await api("api/auth/login",{userId:byId("pd-login-user").value,password:byId("pd-login-pass").value});state.challengeId=o.challengeId;state.challengePurpose="login";state.channel=o.channel;show("otp");byId("pd-otp-help").textContent="We sent a code to "+(o.maskedDestination||"your registered contact")+". It expires in 10 minutes.";}catch(e){say(e.message);}});
+ byId("pd-otp-submit").addEventListener("click",async()=>{try{say("Verifying code…");const path=state.challengePurpose==="setup"?"api/auth/verify-setup":"api/auth/verify-login";const o=await api(path,{challengeId:state.challengeId,code:byId("pd-otp-code").value});saveToken(o.token);enter();}catch(e){say(e.message);}});
+ byId("pd-otp-back").addEventListener("click",()=>show(state.challengePurpose==="setup"?"setup":"login"));
+ byId("pd-setup-submit").addEventListener("click",async()=>{try{say("Creating secure account…");const o=await api("api/auth/setup",{setupToken:byId("pd-setup-code").value,name:byId("pd-setup-name").value,userId:byId("pd-setup-user").value,email:byId("pd-setup-email").value,phone:byId("pd-setup-phone").value,channel:byId("pd-setup-channel").value,password:byId("pd-setup-pass").value});state.challengeId=o.challengeId;state.challengePurpose="setup";state.channel=o.channel;show("otp");byId("pd-otp-help").textContent="We sent a verification code to "+(o.maskedDestination||"your registered contact")+".";
+ }catch(e){say(e.message);}});
+ byId("pd-show-forgot").addEventListener("click",()=>show("forgot"));byId("pd-forgot-back").addEventListener("click",()=>show("login"));
+ byId("pd-forgot-submit").addEventListener("click",async()=>{try{say("Requesting reset code…");const o=await api("api/auth/forgot",{identifier:byId("pd-forgot-id").value,channel:byId("pd-forgot-channel").value});if(!o.challengeId){say(o.message||"If the account exists, a code will be sent.");return;}state.challengeId=o.challengeId;state.challengePurpose="reset";show("reset");say("A reset code has been sent to "+(o.maskedDestination||"your verified contact")+".");}catch(e){say(e.message);}});
+ byId("pd-reset-submit").addEventListener("click",async()=>{try{say("Resetting password…");await api("api/auth/verify-reset",{challengeId:state.challengeId,code:byId("pd-reset-code").value,newPassword:byId("pd-reset-pass").value});show("login");say("Password reset successfully. Sign in with your new password.");}catch(e){say(e.message);}});
+ logout.addEventListener("click",async()=>{try{await api("api/auth/logout",{})}catch(e){}clearToken();logout.style.display="none";overlay.hidden=false;show("login");say("You have signed out.");});
+ startup();
+})();
+</script>
+
 </body>
 </html>

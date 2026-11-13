@@ -79,8 +79,11 @@ export async function handleAuth(request, env, url) {
   if (path === "/api/auth/setup" && request.method === "POST") {
     const b = await body();
     if (!env.ADMIN_SETUP_TOKEN || !safeEqual(clean(b.setupToken, 300), env.ADMIN_SETUP_TOKEN)) return json({ error: "Setup code is invalid." }, 403);
-    const count = await db.prepare("SELECT COUNT(*) AS n FROM auth_users").first();
-    if ((count?.n || 0) > 0) return json({ error: "Initial setup has already been completed." }, 409);
+    try {
+      await db.prepare("INSERT INTO auth_setup_lock (id,created_at) VALUES (1,?)").bind(new Date().toISOString()).run();
+    } catch {
+      return json({ error: "Initial setup has already been completed." }, 409);
+    }
     const userId = clean(b.userId, 40), name = clean(b.name, 80), email = clean(b.email, 160).toLowerCase(), phone = clean(b.phone, 20), password = b.password, channel = b.channel === "sms" ? "sms" : "email";
     if (!/^[a-zA-Z0-9._-]{3,40}$/.test(userId) || !name || !validEmail(email) || !validPassword(password)) return json({ error: "Enter a valid User ID, name, email and password (at least 12 characters)." }, 400);
     if (phone && !validPhone(phone)) return json({ error: "Use international phone format, e.g. +8801XXXXXXXXX." }, 400);
@@ -88,11 +91,18 @@ export async function handleAuth(request, env, url) {
     const id = randomToken(16), salt = randomToken(16), hash = await passwordHash(password, salt);
     try {
       await db.prepare("INSERT INTO auth_users (id,user_id,display_name,email,phone,password_salt,password_hash,is_admin,is_active,two_factor_channel,email_verified,phone_verified,created_at) VALUES (?,?,?,?,?,?,?,1,0,?,0,0,?)").bind(id, userId, name, email, phone || null, salt, hash, channel, new Date().toISOString()).run();
-    } catch { return json({ error: "Could not create account. User ID or email may already be used." }, 409); }
+    } catch {
+      await db.prepare("DELETE FROM auth_setup_lock WHERE id=1").run();
+      return json({ error: "Could not create account. User ID or email may already be used." }, 409);
+    }
     try {
       const ch = await issueChallenge(db, { id }, "setup", channel, channel === "sms" ? phone : email, env);
       return json({ ok: true, ...ch, message: "Verification code sent." });
-    } catch (e) { await db.prepare("DELETE FROM auth_users WHERE id=?").bind(id).run(); return json({ error: e.message || "Could not send verification code." }, 503); }
+    } catch (e) {
+      await db.prepare("DELETE FROM auth_users WHERE id=?").bind(id).run();
+      await db.prepare("DELETE FROM auth_setup_lock WHERE id=1").run();
+      return json({ error: e.message || "Could not send verification code." }, 503);
+    }
   }
   if (path === "/api/auth/verify-setup" && request.method === "POST") {
     const b = await body(), row = await verifyChallenge(db, clean(b.challengeId, 100), clean(b.code, 6), "setup", env);
@@ -104,8 +114,17 @@ export async function handleAuth(request, env, url) {
   }
   if (path === "/api/auth/login" && request.method === "POST") {
     const b = await body(), userId = clean(b.userId, 80), password = typeof b.password === "string" ? b.password : "";
+    const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+    const rateKey = await sha256(ip + ":" + userId.toLowerCase());
+    const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const attempts = await db.prepare("SELECT COUNT(*) AS n FROM auth_login_attempts WHERE key_hash=? AND attempted_at>?").bind(rateKey, since).first();
+    if ((attempts?.n || 0) >= 10) return json({ error: "Too many login attempts. Try again in 15 minutes." }, 429);
     const user = await db.prepare("SELECT * FROM auth_users WHERE user_id=? COLLATE NOCASE AND is_active=1").bind(userId).first();
-    if (!user || !validPassword(password) || !safeEqual(await passwordHash(password, user.password_salt), user.password_hash)) return json({ error: "User ID or password is incorrect." }, 401);
+    if (!user || !validPassword(password) || !safeEqual(await passwordHash(password, user.password_salt), user.password_hash)) {
+      await db.prepare("INSERT INTO auth_login_attempts (key_hash,attempted_at) VALUES (?,?)").bind(rateKey, new Date().toISOString()).run();
+      return json({ error: "User ID or password is incorrect." }, 401);
+    }
+    await db.prepare("DELETE FROM auth_login_attempts WHERE key_hash=?").bind(rateKey).run();
     const channel = b.channel === "sms" ? "sms" : (user.two_factor_channel || "email");
     const dest = channel === "sms" ? user.phone : user.email;
     if (!dest || (channel === "sms" && !user.phone_verified) || (channel === "email" && !user.email_verified)) return json({ error: "That verification method is not registered and verified." }, 400);

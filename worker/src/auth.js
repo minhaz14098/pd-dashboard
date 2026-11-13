@@ -146,3 +146,7 @@ export async function handleAuth(request, env, url) {
   }
   return json({ error: "Not found." }, 404);
 }
+export async function authorize(request, env) {
+  if (!env.DB) return false;
+  return !!(await getSession(request, env.DB));
+}

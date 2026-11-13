@@ -276,21 +276,21 @@ tr.tot td{background:#e9edf0!important}
 </style>
 \n
 <style id="pd-lime-final">
-:root{--pd-sidebar:#eff9c8;--pd-canvas:#f7fbe9}
-.pd-sidebar{background:#eff9c8!important;color:#24320a!important;box-shadow:5px 0 22px rgba(80,110,20,.10)!important;border-right:1px solid #dceba8}
+:root{--pd-lime:#d5fd00;--pd-sidebar:var(--pd-lime);--pd-canvas:#f7fbe9}
+.pd-sidebar{background:var(--pd-sidebar)!important;color:#24320a!important;box-shadow:5px 0 22px rgba(80,110,20,.10)!important;border-right:1px solid #dceba8}
 .pd-brand{color:#26350b!important}
 .pd-nav-label{color:#65752f!important}
 .pd-nav{color:#3d4c1d!important}
 .pd-nav:hover{background:#e1f2a5!important;color:#1e2b08!important}
-.pd-nav.active{background:#b8e600!important;color:#172000!important}
+.pd-nav.active{background:var(--pd-lime)!important;color:#172000!important}
 .pd-sidebar-foot{border-top-color:#d4e69a!important;color:#52632b!important}
 .pd-sidebar-foot small{color:#74834e!important}
-.pd-live-dot{background:#7eae00!important;box-shadow:0 0 0 4px #9bc90022!important}
+.pd-live-dot{background:var(--pd-lime)!important;box-shadow:0 0 0 4px #9bc90022!important}
 body{background:#f7fbe9!important}
 
 /* User-requested solid lime green profile elements */
-.cover{background:#d5fd00!important}
-.av{background:#d5fd00!important;color:#111!important}
+.cover{background:var(--pd-lime)!important}
+.av{background:var(--pd-lime)!important;color:#111!important}
 .av.big{box-shadow:0 0 0 1px #b8d900!important}
 </style>
 </head>
@@ -395,7 +395,7 @@ body{background:#f7fbe9!important}
       <label>Financial year starts in month (1 to 12)<input type="number" id="sFy" min="1" max="12"></label>
       <label>Lead time target (days, highlighted under)<input type="number" id="sLow" min="1"></label>
       <label>Rows in top lists<input type="number" id="sTop" min="3" max="40"></label>
-      <label>Accent color (bars, highlights)<input type="color" id="sAcc"></label>
+      <label>Dashboard theme color (profile cover, sidebar & highlights)<input type="color" id="sAcc"></label>
       <label>Show decreases in quarter progress<select id="sDec"><option value="0">No, hide decreases</option><option value="1">Yes, show them</option></select></label>
       <label>Price label (for example a currency symbol)<input type="text" id="sPL"></label>
       <label>Price bands, lower edges separated by commas<input type="text" id="sBands"></label>
@@ -825,6 +825,8 @@ const C1=()=>'#000000', C2=()=>'#878787', ACC=()=>settings.accent, ACC2=()=>shad
 function applySettingsToUI(){
   document.documentElement.style.setProperty('--accent', settings.accent);
   document.documentElement.style.setProperty('--accent2', ACC2());
+  document.documentElement.style.setProperty('--pd-lime', settings.accent);
+  document.documentElement.style.setProperty('--pd-sidebar', settings.accent);
   $('#sTitle').value=settings.title; $('#sFy').value=settings.fy;
   $('#sLow').value=settings.low; $('#sTop').value=settings.top; $('#sAcc').value=settings.accent;
   $('#sDec').value=String(settings.dec); $('#sRules').value=settings.rules; $('#sPL').value=settings.plabel; $('#sBands').value=settings.bands;

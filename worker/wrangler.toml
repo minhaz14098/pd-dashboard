@@ -7,3 +7,10 @@ compatibility_date = "2026-11-13"
 # or with wrangler secret/vars commands. Use public CSV export URLs.
 # TRACKER_CSV_URL = "https://docs.google.com/spreadsheets/d/.../export?format=csv&gid=..."
 # COSTING_CSV_URL = "https://docs.google.com/spreadsheets/d/.../export?format=csv&gid=..."
+AUTH_REQUIRED = "true"
+
+# After creating the D1 database, add its binding here or in the Cloudflare dashboard:
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "pd-dashboard-auth"
+# database_id = "<your-database-id>"

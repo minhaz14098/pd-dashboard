@@ -1,0 +1,52 @@
+name: Deploy Cloudflare Worker
+on:
+  push:
+    branches: [main]
+    paths:
+      - "worker/**"
+      - ".github/workflows/worker.yml"
+      - ".github/workflows/pages.yml"
+      - "auth.js"
+      - "index.html"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+      - run: npm install --global wrangler@4
+      - name: Validate deployment configuration
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          SETUP_KEY: ${{ secrets.SETUP_KEY }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          SHEETS_WRITE_URL: ${{ secrets.SHEETS_WRITE_URL }}
+          SHEETS_WRITE_KEY: ${{ secrets.SHEETS_WRITE_KEY }}
+        run: |
+          for name in CLOUDFLARE_API_TOKEN AUTH_SECRET SETUP_KEY MAIL_FROM SHEETS_WRITE_URL SHEETS_WRITE_KEY; do
+            test -n "${!name}" || { echo "Missing GitHub Actions secret: $name"; exit 1; }
+          done
+      - name: Deploy Worker and preserve existing Cloudflare variables
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          SETUP_KEY: ${{ secrets.SETUP_KEY }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          SHEETS_WRITE_URL: ${{ secrets.SHEETS_WRITE_URL }}
+          SHEETS_WRITE_KEY: ${{ secrets.SHEETS_WRITE_KEY }}
+        run: |
+          npx wrangler deploy --keep-vars
+          for name in AUTH_SECRET SETUP_KEY MAIL_FROM SHEETS_WRITE_URL SHEETS_WRITE_KEY; do
+            printf '%s' "${!name}" | npx wrangler secret put "$name" --name pd-dashboard-api
+          done
+

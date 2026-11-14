@@ -1,9 +1,15 @@
 name = "pd-dashboard-api"
 main = "src/index.js"
 compatibility_date = "2026-11-13"
+workers_dev = true
+keep_vars = true
+account_id = "4d982d214d9cecb32a720ecd8933cc96"
+
+[[d1_databases]]
+binding = "BD"
+database_name = "pd-dashboard-auth"
+database_id = "84fe2914-9ccd-4592-bf81-dfafdb9b9c0c"
 
 [vars]
-# Set these in Cloudflare Dashboard > Workers & Pages > pd-dashboard-api
-# or with wrangler secret/vars commands. Use public CSV export URLs.
-# TRACKER_CSV_URL = "https://docs.google.com/spreadsheets/d/.../export?format=csv&gid=..."
-# COSTING_CSV_URL = "https://docs.google.com/spreadsheets/d/.../export?format=csv&gid=..."
+# Existing CSV URLs and the current Resend key stay in Cloudflare as-is.
+# keep_vars preserves dashboard variables when Wrangler deploys this Worker.

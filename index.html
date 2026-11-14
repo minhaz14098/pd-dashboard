@@ -322,6 +322,7 @@ body{background:#f7fbe9!important}
 .pd-sync-status{display:block;padding:0 5px;color:#66723e;font-size:9px;line-height:1.45;overflow-wrap:anywhere}
 @media(max-width:560px){.profile-filters{justify-content:flex-end;flex-wrap:wrap}.profile-filters label{font-size:10px}.pd-sync-btn{width:auto;min-width:105px;margin:0 4px;padding:9px}.pd-sync-status{display:none}}
 </style>
+<style>body:not(.pd-auth-ready){visibility:hidden}</style>
 </head>
 <body>
 
@@ -396,7 +397,8 @@ body{background:#f7fbe9!important}
       <label>Dates in the sheet are written<select id="sDateOrder"><option value="0">Day first (12/11/2026 is 12 Nov)</option><option value="1">Month first (11/12/2026 is 12 Nov)</option></select></label>
       <label>Auto sync with Google Sheets<select id="sRefresh"><option value="30">Every 30 seconds</option><option value="60">Every 1 minute</option><option value="120">Every 2 minutes</option><option value="300">Every 5 minutes</option><option value="900">Every 15 minutes</option><option value="0">Off, only when I click Refresh data</option></select></label>
     </div>
-    <div class="qbar"><button class="btn primary" id="btnSaveLoad">Save and load data</button><span id="syncStatus" class="note" style="margin:0"></span></div>
+    <div class="qbar"><button class="btn primary" id="btnSaveLoad">Save and load data</button><button class="btn" id="btnWriteTracker">Append tracker rows to Sheets</button><button class="btn" id="btnWriteCosting">Append costing rows to Sheets</button><span id="syncStatus" class="note" style="margin:0"></span></div>
+    <div class="note">Write sync is append-only: it adds loaded rows through the configured Worker endpoint and never clears or overwrites existing sheet cells. Review the sheet and select the intended rows before syncing to avoid duplicates.</div>
     <div class="note">1. Open the Google Sheet, click Share, and set General access to Anyone with the link, role Viewer. A sheet that stays private cannot be read by this page.<br>2. Open the tab you want and copy the address bar link. It ends with #gid=, which picks the tab. A link without it reads the first tab.<br>3. Paste tracker links in the left box and costing links in the right box, one per line, then click Save and load data. The links are saved in this browser, and the data reloads each time you open the page.<br>4. If the file in Drive is an Excel (.xlsx) file, open it and use File, Save as Google Sheets first.<br>5. Auto sync runs while this page is open in a browser tab. When you edit the sheet, the dashboard updates within the sync interval, and it also refreshes the moment you return to the tab. Links made with Publish to web can lag a few minutes on Google's side, so use the Share link instead for the fastest updates.</div>
     <div class="kl">Or upload files instead</div>
     <div class="qbar"><button class="btn" id="btnSelect">Select files</button><input type="file" id="file" accept=".xlsx,.xls,.xlsm,.csv,.txt" multiple hidden><button class="btn" id="btnUpload" disabled>Upload data</button></div>
@@ -1375,15 +1377,22 @@ function paintSub(){
 function hashStr(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0; return (h>>>0).toString(36)+':'+s.length; }
 function toast(msg){ const el=$('#toast'); el.textContent=msg; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),4000); }
 
-const GOOGLE_SHEETS_API = 'https://pd-dashboard-api.kaziminhaz14.workers.dev/';
+const GOOGLE_SHEETS_API = window.PD_API_URL || 'https://pd-dashboard-api.kaziminhaz14.workers.dev/';
 let workerSyncing = false;
+async function appendSheetsRows(kind){
+  const sources=(kind==='tracker'?state.tracks:state.costs).filter(x=>!x.sample);
+  const rows=sources.flatMap(src=>{const data=src.sheets&&src.sheets[src.sheetName];return Array.isArray(data)?data:[];});
+  if(!rows.length){toast('Load '+kind+' rows before syncing');return;}
+  if(!confirm('Append '+rows.length+' '+kind+' rows to Google Sheets? Existing rows will stay unchanged. Repeating this action may create duplicates.'))return;
+  try{const response=await fetch(GOOGLE_SHEETS_API,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+(localStorage.getItem('pd_auth_token')||'')},body:JSON.stringify({sheet:kind,rows})});const result=await response.json();if(!response.ok)throw new Error(result.error||'Write failed');setStatus('Appended '+rows.length+' '+kind+' rows to Google Sheets.');toast('Rows appended successfully');}catch(error){setStatus('Sheets write failed: '+error.message);toast('Sheets write failed: '+error.message);}
+}
 async function syncWorkerSheets(silent){
   if(workerSyncing) return;
   workerSyncing=true;
   const status=$('#workerStatus');
   if(status) status.textContent='Syncing live Google Sheets…';
   try{
-    const response=await fetch(GOOGLE_SHEETS_API,{method:'GET',cache:'no-store'});
+    const response=await fetch(GOOGLE_SHEETS_API,{method:'GET',cache:'no-store',headers:{Authorization:'Bearer '+(localStorage.getItem('pd_auth_token')||'')}});
     if(!response.ok) throw new Error('Worker returned HTTP '+response.status);
     const payload=await response.json();
     if(!payload || typeof payload.tracker!=='string' || typeof payload.costing!=='string'){
@@ -1486,6 +1495,7 @@ $('#btnSelect').onclick=()=>$('#file').click();
 $('#drop').onclick=()=>{ $('#srcPanel').hidden=false; };
 
 $('#btnRefresh').onclick=()=>syncWorkerSheets(false);
+$('#btnWriteTracker').onclick=()=>appendSheetsRows('tracker'); $('#btnWriteCosting').onclick=()=>appendSheetsRows('costing');
 $('#btnSaveLoad').onclick=()=>{ readSettings(); applySettingsToUI(); setupAutoRefresh(); loadFromSheets(false); };
 $('#file').onchange=e=>{ if(e.target.files.length) addToQueue(e.target.files); e.target.value=''; };
 $('#btnUpload').onclick=uploadQueue; $('#btnQUpload').onclick=uploadQueue;
@@ -1552,5 +1562,6 @@ document.addEventListener('drop',e=>{ const f=e.dataTransfer&&e.dataTransfer.fil
  navs.forEach(button=>button.addEventListener('click',()=>go(button.dataset.go)));
 })();
 </script>
+<script src="./auth.js"></script>
 </body>
 </html>
